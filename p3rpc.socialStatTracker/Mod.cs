@@ -170,21 +170,23 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     private FString[] _pointStrs = new FString[3];
     private FString _blankStr = new FString("");
     private int[] _lastPoints = { -1, -1, -1 };
+    private bool[] _resetStr = { false, false, false };
 
     private bool TryGetPointsStr(int stat, int points, out FString pointsFStr)
     {
-        if (_lastPoints[stat] == points)
+        if (!_resetStr[stat] && _lastPoints[stat] == points)
         {
             pointsFStr = _pointStrs[stat];
             return _configuration.DisplayType != Config.PointDisplayType.None;
         }
 
+        _resetStr[stat] = false;
         var level = GetLevel(stat, points);
         pointsFStr = _blankStr;
         string pointsStr;
         if (level == 6)
         {
-            if (points == _requiredPoints![stat][5])
+            if (points == _requiredPoints![stat][5] || _configuration.DisplayType == Config.PointDisplayType.None)
                 return false;
             pointsStr = $"+{points - _requiredPoints![stat][5]}";
         }
@@ -226,8 +228,8 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         // Clear last points so strings will be recreated
         if(_configuration.DisplayType != configuration.DisplayType)
         {
-            for (int i = 0; i < _lastPoints.Length; i++)
-                _lastPoints[i] = -1;
+            for(int i = 0; i < _resetStr.Length; i++)
+                _resetStr[i] = true;
         }
 
         // Apply settings from configuration.
