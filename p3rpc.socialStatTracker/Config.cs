@@ -9,6 +9,11 @@ public class Config : Configurable<Config>
     [DefaultValue(PointDisplayType.Exact)]
     public PointDisplayType DisplayType { get; set; } = PointDisplayType.Exact;
 
+    [DisplayName("Display Extra Points")]
+    [Description("If enabled, when you are at max level any extra points you have will be displayed.\nThis is not effected by Point Display Type")]
+    [DefaultValue(true)]
+    public bool DisplayExtra { get; set; } = true;
+
     [DisplayName("Debug Mode")]
     [Description("Logs additional information to the console that is useful for debugging.")]
     [DefaultValue(false)]

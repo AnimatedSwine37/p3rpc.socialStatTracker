@@ -90,7 +90,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
 
     private float GetCircleSize(int stat, int level)
     {
-        if(level == 6) return _circleSizes[5];
+        if (level == 6) return _circleSizes[5];
 
         var points = _lastPoints[stat];
         if (points == -1) return _circleSizes[level - 1]; // In case last points isn't set up yet for some reason
@@ -122,7 +122,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         if (_requiredPoints == null)
             SetupRequiredPoints(heroParam);
 
-        for(int i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++)
         {
             if (!TryGetPointsStr(i, heroParam.Instance.points[i].points, out var pointsStr))
                 continue;
@@ -131,7 +131,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         }
     }
 
-    private (int X, int Y)[] _positions = 
+    private (int X, int Y)[] _positions =
     {
         (1500, 860),
         (1400, 465),
@@ -159,7 +159,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
 
     private int GetLevel(int stat, int points)
     {
-        for(int i = 0; i < 6; i++)
+        for (int i = 0; i < 6; i++)
         {
             if (points < _requiredPoints![stat][i])
                 return i;
@@ -170,6 +170,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     private FString[] _pointStrs = new FString[3];
     private FString _blankStr = new FString("");
     private int[] _lastPoints = { -1, -1, -1 };
+    private int[] _lastLevels = { -1, -1, -1 };
     private bool[] _resetStr = { false, false, false };
 
     private bool TryGetPointsStr(int stat, int points, out FString pointsFStr)
@@ -177,16 +178,19 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         if (!_resetStr[stat] && _lastPoints[stat] == points)
         {
             pointsFStr = _pointStrs[stat];
+            if (_lastLevels[stat] == 6)
+                return _configuration.DisplayExtra;
             return _configuration.DisplayType != Config.PointDisplayType.None;
         }
 
         _resetStr[stat] = false;
         var level = GetLevel(stat, points);
+        _lastLevels[stat] = level;
         pointsFStr = _blankStr;
         string pointsStr;
         if (level == 6)
         {
-            if (points == _requiredPoints![stat][5] || _configuration.DisplayType == Config.PointDisplayType.None)
+            if (points == _requiredPoints![stat][5] || !_configuration.DisplayExtra)
                 return false;
             pointsStr = $"+{points - _requiredPoints![stat][5]}";
         }
@@ -226,7 +230,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     public override void ConfigurationUpdated(Config configuration)
     {
         // Clear last points so strings will be recreated
-        if(_configuration.DisplayType != configuration.DisplayType)
+        if(_configuration.DisplayType != configuration.DisplayType || _configuration.DisplayExtra != configuration.DisplayExtra)
         {
             for(int i = 0; i < _resetStr.Length; i++)
                 _resetStr[i] = true;
