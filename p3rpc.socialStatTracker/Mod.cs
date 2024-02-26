@@ -1,6 +1,8 @@
 ﻿using p3rpc.socialStatTracker.Configuration;
 using p3rpc.socialStatTracker.Template;
 using Reloaded.Hooks.Definitions;
+using Reloaded.Hooks.Definitions.Enums;
+using Reloaded.Hooks.Definitions.X64;
 using Reloaded.Mod.Interfaces;
 using System.Diagnostics;
 using UE4SSDotNetFramework.Framework;
@@ -13,7 +15,7 @@ namespace p3rpc.socialStatTracker;
 /// <summary>
 /// Your mod logic goes here.
 /// </summary>
-public class Mod : ModBase // <= Do not Remove.
+public unsafe class Mod : ModBase // <= Do not Remove.
 {
     /// <summary>
     /// Provides access to the mod loader API.
@@ -47,7 +49,9 @@ public class Mod : ModBase // <= Do not Remove.
     private readonly IModConfig _modConfig;
 
     private IHook<ParameterStatusDrawDelegate> _paramDrawHook;
-    private UIDrawBaseActor? _drawBase = null;
+    private float* _circleSizes;
+    private IAsmHook _circleSizeHook;
+    private IReverseWrapper<GetCircleSizeDelegate> _getCircleSizeReverseWrapper;
 
     public Mod(ModContext context)
     {
@@ -65,6 +69,39 @@ public class Mod : ModBase // <= Do not Remove.
         {
             _paramDrawHook = _hooks.CreateHook<ParameterStatusDrawDelegate>(ParamStatusDraw, address).Activate();
         });
+
+        SigScan("48 8D 05 ?? ?? ?? ?? F3 44 0F 10 44 ?? ??", "CircleSize", address =>
+        {
+            _circleSizes = (float*)GetGlobalAddress(address + 3);
+
+            string[] function =
+            {
+                "use64",
+                "push rcx\npush rdx\npush r8\npush r10\npush r11",
+                "sub rsp, 40",
+                $"{_hooks.Utilities.GetAbsoluteCallMnemonics(GetCircleSize, out _getCircleSizeReverseWrapper)}",
+                "add rsp, 40",
+                "movss xmm8, xmm0",
+                "pop r11\npop r10\npop r8\npop rdx\npop rcx",
+            };
+            _circleSizeHook = _hooks.CreateAsmHook(function, address + 7, AsmHookBehaviour.ExecuteAfter).Activate();
+        });
+    }
+
+    private float GetCircleSize(int stat, int level)
+    {
+        if(level == 6) return _circleSizes[5];
+
+        var points = _lastPoints[stat];
+        if (points == -1) return _circleSizes[level - 1]; // In case last points isn't set up yet for some reason
+
+        var required = _requiredPoints![stat][level];
+        var lastRequired = _requiredPoints[stat][level - 1];
+        var nextSize = _circleSizes[level] - 5;
+        var currentSize = _circleSizes[level - 1];
+
+        var percent = ((float)points - lastRequired) / ((float)required - lastRequired);
+        return currentSize + percent * (nextSize - currentSize);
     }
 
     private unsafe void ParamStatusDraw(nuint info, uint param_2)
@@ -170,6 +207,9 @@ public class Mod : ModBase // <= Do not Remove.
     }
 
     private delegate void ParameterStatusDrawDelegate(nuint info, uint param_2);
+
+    [Function([FunctionAttribute.Register.r8, FunctionAttribute.Register.r15], FunctionAttribute.Register.rax, true)]
+    private delegate float GetCircleSizeDelegate(int stat, int level);
 
     #region Standard Overrides
     public override void ConfigurationUpdated(Config configuration)
