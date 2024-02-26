@@ -155,7 +155,10 @@ public class Mod : ModBase // <= Do not Remove.
         {
             var required = _requiredPoints![stat][level];
             var lastRequired = _requiredPoints[stat][level - 1];
-            pointsStr = $"{points - lastRequired}/{required - lastRequired}";
+            if (_configuration.DisplayPercentage)
+                pointsStr = $"{((float)points - lastRequired) / ((float)required - lastRequired) * 100:0}%";
+            else
+                pointsStr = $"{points - lastRequired}/{required - lastRequired}";
         }
 
         pointsFStr = new FString(pointsStr);
@@ -171,8 +174,14 @@ public class Mod : ModBase // <= Do not Remove.
     #region Standard Overrides
     public override void ConfigurationUpdated(Config configuration)
     {
+        // Clear last points so strings will be recreated
+        if(_configuration.DisplayPercentage != configuration.DisplayPercentage)
+        {
+            for (int i = 0; i < _lastPoints.Length; i++)
+                _lastPoints[i] = -1;
+        }
+
         // Apply settings from configuration.
-        // ... your code here.
         _configuration = configuration;
         _logger.WriteLine($"[{_modConfig.ModId}] Config Updated: Applying");
     }
