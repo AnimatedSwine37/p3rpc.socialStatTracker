@@ -176,7 +176,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         if (_lastPoints[stat] == points)
         {
             pointsFStr = _pointStrs[stat];
-            return true;
+            return _configuration.DisplayType != Config.PointDisplayType.None;
         }
 
         var level = GetLevel(stat, points);
@@ -192,10 +192,19 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         {
             var required = _requiredPoints![stat][level];
             var lastRequired = _requiredPoints[stat][level - 1];
-            if (_configuration.DisplayPercentage)
-                pointsStr = $"{((float)points - lastRequired) / ((float)required - lastRequired) * 100:0}%";
-            else
-                pointsStr = $"{points - lastRequired}/{required - lastRequired}";
+
+            switch(_configuration.DisplayType)
+            {
+                case Config.PointDisplayType.Exact:
+                    pointsStr = $"{points - lastRequired}/{required - lastRequired}";
+                    break;
+                case Config.PointDisplayType.Percent:
+                    pointsStr = $"{((float)points - lastRequired) / ((float)required - lastRequired) * 100:0}%";
+                    break;
+                default:
+                    _lastPoints[stat] = points;
+                    return false;
+            }                
         }
 
         pointsFStr = new FString(pointsStr);
@@ -215,7 +224,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     public override void ConfigurationUpdated(Config configuration)
     {
         // Clear last points so strings will be recreated
-        if(_configuration.DisplayPercentage != configuration.DisplayPercentage)
+        if(_configuration.DisplayType != configuration.DisplayType)
         {
             for (int i = 0; i < _lastPoints.Length; i++)
                 _lastPoints[i] = -1;

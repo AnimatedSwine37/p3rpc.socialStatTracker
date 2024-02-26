@@ -4,10 +4,10 @@ using System.ComponentModel;
 namespace p3rpc.socialStatTracker.Configuration;
 public class Config : Configurable<Config>
 {
-    [DisplayName("Use Percentage")]
-    [Description("If enabled you'll see the percentage of the way you are to the next level instead of the number of points.")]
-    [DefaultValue(false)]
-    public bool DisplayPercentage { get; set; } = false;
+    [DisplayName("Point Display Type")]
+    [Description("How the number of points you need will be displayed.")]
+    [DefaultValue(PointDisplayType.Exact)]
+    public PointDisplayType DisplayType { get; set; } = PointDisplayType.Exact;
 
     [DisplayName("Debug Mode")]
     [Description("Logs additional information to the console that is useful for debugging.")]
@@ -21,6 +21,13 @@ public class Config : Configurable<Config>
     [DisplayName("Y")]
     [DefaultValue(100)]
     public float Y { get; set; } = 100;
+
+    public enum PointDisplayType
+    {
+        None,
+        Exact,
+        Percent
+    }
 
 }
 
