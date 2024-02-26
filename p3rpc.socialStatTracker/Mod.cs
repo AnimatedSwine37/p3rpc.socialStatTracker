@@ -127,15 +127,15 @@ public unsafe class Mod : ModBase // <= Do not Remove.
             if (!TryGetPointsStr(i, heroParam.Instance.points[i].points, out var pointsStr))
                 continue;
 
-            drawBase.BPUICommand_FontDraw(_positions[i].X, _positions[i].Y, 100, pointsStr, 255, 255, 255, 255, 1, 1, EUI_DRAW_POINT.UI_DRAW_CENTER_CENTER, EUIFontStyle.EUI_Defult_Value);
+            drawBase.BPUICommand_FontDraw(_positions[i].X, _positions[i].Y, 100, pointsStr, 255, 255, 255, 255, 1, -8.5f, EUI_DRAW_POINT.UI_DRAW_CENTER_CENTER, EUIFontStyle.EUI_Defult_Value);
         }
     }
 
     private (int X, int Y)[] _positions =
     {
-        (1500, 860),
-        (1400, 465),
-        (945, 860)
+        (1560, 745),
+        (1400, 365),
+        (1010, 750)
     };
 
     private int[][]? _requiredPoints;
