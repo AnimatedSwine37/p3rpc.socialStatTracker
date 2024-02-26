@@ -1,0 +1,24 @@
+{
+  "ModId": "p3rpc.socialStatTracker",
+  "ModName": "Social Stat Tracker",
+  "ModAuthor": "AnimatedSwine37",
+  "ModVersion": "1.0.0",
+  "ModDescription": "Lets you see exactly how many more points you need to level up social stats.",
+  "ModDll": "p3rpc.socialStatTracker.dll",
+  "ModIcon": "Preview.png",
+  "ModR2RManagedDll32": "x86/p3rpc.socialStatTracker.dll",
+  "ModR2RManagedDll64": "x64/p3rpc.socialStatTracker.dll",
+  "ModNativeDll32": "",
+  "ModNativeDll64": "",
+  "IsLibrary": false,
+  "ReleaseMetadataFileName": "p3rpc.socialStatTracker.ReleaseMetadata.json",
+  "PluginData": {},
+  "IsUniversalMod": false,
+  "ModDependencies": [
+    "reloaded.sharedlib.hooks",
+    "Reloaded.Memory.SigScan.ReloadedII"
+  ],
+  "OptionalDependencies": [],
+  "SupportedAppId": ["p3r.exe"],
+  "ProjectUrl": ""
+}
