@@ -87,23 +87,10 @@ public class Mod : ModBase // <= Do not Remove.
 
         for(int i = 0; i < 3; i++)
         {
-            var points = heroParam.Instance.points[i].points;
-            var level = GetLevel(i, points);
-            string pointsStr;
-            if (level == 6)
-            {
-                if (points == _requiredPoints![i][5])
-                    continue;
-                pointsStr = $"+{points - _requiredPoints![i][5]}";
-            }
-            else
-            {
-                var required = _requiredPoints![i][level];
-                var lastRequired = _requiredPoints[i][level - 1];
-                pointsStr = $"{points - lastRequired}/{required - lastRequired}";
-            }
+            if (!TryGetPointsStr(i, heroParam.Instance.points[i].points, out var pointsStr))
+                continue;
 
-            drawBase.BPUICommand_FontDraw(_positions[i].X, _positions[i].Y, 100, new FString(pointsStr), 255, 255, 255, 255, 1, 1, EUI_DRAW_POINT.UI_DRAW_CENTER_CENTER, EUIFontStyle.EUI_Defult_Value);
+            drawBase.BPUICommand_FontDraw(_positions[i].X, _positions[i].Y, 100, pointsStr, 255, 255, 255, 255, 1, 1, EUI_DRAW_POINT.UI_DRAW_CENTER_CENTER, EUIFontStyle.EUI_Defult_Value);
         }
     }
 
@@ -141,6 +128,42 @@ public class Mod : ModBase // <= Do not Remove.
                 return i;
         }
         return 6;
+    }
+
+    private FString[] _pointStrs = new FString[3];
+    private FString _blankStr = new FString("");
+    private int[] _lastPoints = { -1, -1, -1 };
+
+    private bool TryGetPointsStr(int stat, int points, out FString pointsFStr)
+    {
+        if (_lastPoints[stat] == points)
+        {
+            pointsFStr = _pointStrs[stat];
+            return true;
+        }
+
+        var level = GetLevel(stat, points);
+        pointsFStr = _blankStr;
+        string pointsStr;
+        if (level == 6)
+        {
+            if (points == _requiredPoints![stat][5])
+                return false;
+            pointsStr = $"+{points - _requiredPoints![stat][5]}";
+        }
+        else
+        {
+            var required = _requiredPoints![stat][level];
+            var lastRequired = _requiredPoints[stat][level - 1];
+            pointsStr = $"{points - lastRequired}/{required - lastRequired}";
+        }
+
+        pointsFStr = new FString(pointsStr);
+        _lastPoints[stat] = points;
+        _pointStrs[stat].Dispose();
+        _pointStrs[stat] = pointsFStr;
+
+        return true;
     }
 
     private delegate void ParameterStatusDrawDelegate(nuint info, uint param_2);

@@ -4,7 +4,7 @@ using static p3rpc.socialStatTracker.Native.UnrealArray;
 namespace p3rpc.socialStatTracker.Native;
 internal unsafe class UnrealString
 {
-    internal struct FString
+    internal struct FString : IDisposable
     {
         TArray<char> Data; // characters are either ANSICHAR or WIDECHAR depending on platform. See definition in Core\Public\HAL\Platform.h
 
@@ -26,6 +26,12 @@ internal unsafe class UnrealString
         public override string ToString()
         {
             return Marshal.PtrToStringUni((nint)Data.Values, Data.Length);
+        }
+
+        public void Dispose()
+        {
+            // Should really just make TArray disposable instead and free there...
+            Marshal.FreeHGlobal((nint)Data.Values);
         }
     }
 }
