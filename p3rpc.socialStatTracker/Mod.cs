@@ -5,6 +5,7 @@ using Reloaded.Hooks.Definitions.Enums;
 using Reloaded.Hooks.Definitions.X64;
 using Reloaded.Mod.Interfaces;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using UE4SSDotNetFramework.Framework;
 using static p3rpc.socialStatTracker.Native.UnrealString;
 using static p3rpc.socialStatTracker.Native.xrd777;
@@ -104,7 +105,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         return currentSize + percent * (nextSize - currentSize);
     }
 
-    private unsafe void ParamStatusDraw(nuint info, uint param_2)
+    private unsafe void ParamStatusDraw(HeroParameterStatusInfo* info, uint param_2)
     {
         _paramDrawHook.OriginalFunction(info, param_2);
 
@@ -127,7 +128,16 @@ public unsafe class Mod : ModBase // <= Do not Remove.
             if (!TryGetPointsStr(i, heroParam.Instance.points[i].points, out var pointsStr))
                 continue;
 
-            drawBase.BPUICommand_FontDraw(_positions[i].X, _positions[i].Y, 100, pointsStr, 255, 255, 255, 255, 1, -8.5f, EUI_DRAW_POINT.UI_DRAW_CENTER_CENTER, EUIFontStyle.EUI_Defult_Value);
+            // Calculate the alpha value the same way the game normally does
+            float opacity = 0;
+            var displayThing = (&info->DisplayThing)[i];
+            if (displayThing.Thing != 0)
+                opacity = displayThing.Opacity;
+
+            if(9 < info->State)
+                opacity = 1 - opacity;
+
+            drawBase.BPUICommand_FontDraw(_positions[i].X, _positions[i].Y, 100, pointsStr, 255, 255, 255, (byte)(255*opacity), 1, -8.5f, EUI_DRAW_POINT.UI_DRAW_CENTER_CENTER, EUIFontStyle.EUI_Defult_Value);
         }
     }
 
@@ -221,10 +231,31 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         return true;
     }
 
-    private delegate void ParameterStatusDrawDelegate(nuint info, uint param_2);
+    private delegate void ParameterStatusDrawDelegate(HeroParameterStatusInfo* info, uint param_2);
 
     [Function([FunctionAttribute.Register.r8, FunctionAttribute.Register.r15], FunctionAttribute.Register.rax, true)]
     private delegate float GetCircleSizeDelegate(int stat, int level);
+
+    // I know the names of these are awful...
+    [StructLayout(LayoutKind.Explicit)]
+    private struct HeroParameterStatusInfo
+    {
+        [FieldOffset(0x38)]
+        public int State;
+
+        [FieldOffset(0x13a8)]
+        public StatDisplayThing DisplayThing; // An array of 3
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0xa0)]
+    private struct StatDisplayThing
+    {
+        [FieldOffset(0)]
+        public int Thing;
+
+        [FieldOffset(0x28)]
+        public float Opacity;
+    }
 
     #region Standard Overrides
     public override void ConfigurationUpdated(Config configuration)
