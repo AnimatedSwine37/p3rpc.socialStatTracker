@@ -1,4 +1,5 @@
 ﻿using p3rpc.socialStatTracker.Configuration;
+using p3rpc.socialStatTracker.Native;
 using p3rpc.socialStatTracker.Template;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Hooks.Definitions.Enums;
@@ -7,6 +8,7 @@ using Reloaded.Mod.Interfaces;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using UE4SSDotNetFramework.Framework;
+using static p3rpc.socialStatTracker.Native.UI;
 using static p3rpc.socialStatTracker.Native.UnrealString;
 using static p3rpc.socialStatTracker.Native.xrd777;
 using static p3rpc.socialStatTracker.Utils;
@@ -49,7 +51,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     /// </summary>
     private readonly IModConfig _modConfig;
 
-    private IHook<ParameterStatusDrawDelegate> _paramDrawHook;
+    private IHook<ParameterStatusDrawLevelNameDelegate> _paramDrawHook;
     private float* _circleSizes;
     private IAsmHook _circleSizeHook;
     private IReverseWrapper<GetCircleSizeDelegate> _getCircleSizeReverseWrapper;
@@ -64,11 +66,12 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         _configuration = context.Configuration;
         _modConfig = context.ModConfig;
 
-        Initialise(_logger, _configuration, _modLoader);
+        Utils.Initialise(_logger, _configuration, _modLoader);
+        UI.Initialise(_hooks);
 
-        SigScan("40 55 57 48 81 EC D8 00 00 00 48 8B 05 ?? ?? ?? ??", "HeroParamStatusDraw", address =>
+        SigScan("40 55 53 41 55 41 57 48 8D AC 24 ?? ?? ?? ?? 48 81 EC 88 03 00 00", "HeroParamStatusDraw", address =>
         {
-            _paramDrawHook = _hooks.CreateHook<ParameterStatusDrawDelegate>(ParamStatusDraw, address).Activate();
+            _paramDrawHook = _hooks.CreateHook<ParameterStatusDrawLevelNameDelegate>(ParamStatusDraw, address).Activate();
         });
 
         SigScan("48 8D 05 ?? ?? ?? ?? F3 44 0F 10 44 ?? ??", "CircleSize", address =>
@@ -105,14 +108,9 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         return currentSize + percent * (nextSize - currentSize);
     }
 
-    private unsafe void ParamStatusDraw(HeroParameterStatusInfo* info, uint param_2)
+    private unsafe void ParamStatusDraw(HeroParameterStatusInfo* info, int param_2, nuint param_3)
     {
-        _paramDrawHook.OriginalFunction(info, param_2);
-
-        var drawBaseRef = ObjectReference.FindFirstOf("UIDrawBaseActor");
-        if (drawBaseRef is null)
-            return;
-        var drawBase = new UIDrawBaseActor(drawBaseRef.Pointer);
+        _paramDrawHook.OriginalFunction(info, param_2, param_3);
 
         var heroParamRef = ObjectReference.FindFirstOf("HeroParameterHandle");
         if (heroParamRef is null)
@@ -134,18 +132,33 @@ public unsafe class Mod : ModBase // <= Do not Remove.
             if (displayThing.Thing != 0)
                 opacity = displayThing.Opacity;
 
-            if(9 < info->State)
+            if (9 < info->State)
                 opacity = 1 - opacity;
 
-            drawBase.BPUICommand_FontDraw(_positions[i].X, _positions[i].Y, 100, pointsStr, 255, 255, 255, (byte)(255*opacity), 1, -8.5f, EUI_DRAW_POINT.UI_DRAW_CENTER_CENTER, EUIFontStyle.EUI_Defult_Value);
+            var text = new UI.TextInfo(
+                _positions[i].X,
+                _positions[i].Y,
+                new Colour
+                {
+                    A = (byte)(255 * opacity),
+                    R = 255,
+                    G = 255,
+                    B = 255
+                },
+                1,
+                -9,
+                pointsStr
+            );
+
+            RenderText(&text, 0, 250, 45, 0, 0, '\0', param_2);
         }
     }
 
     private (int X, int Y)[] _positions =
     {
-        (1560, 745),
-        (1400, 365),
-        (1010, 750)
+        (1515, 738),
+        (1340, 362),
+        (960, 744)
     };
 
     private int[][]? _requiredPoints;
@@ -209,7 +222,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
             var required = _requiredPoints![stat][level];
             var lastRequired = _requiredPoints[stat][level - 1];
 
-            switch(_configuration.DisplayType)
+            switch (_configuration.DisplayType)
             {
                 case Config.PointDisplayType.Exact:
                     pointsStr = $"{points - lastRequired}/{required - lastRequired}";
@@ -220,7 +233,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
                 default:
                     _lastPoints[stat] = points;
                     return false;
-            }                
+            }
         }
 
         pointsFStr = new FString(pointsStr);
@@ -231,7 +244,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         return true;
     }
 
-    private delegate void ParameterStatusDrawDelegate(HeroParameterStatusInfo* info, uint param_2);
+    private delegate void ParameterStatusDrawLevelNameDelegate(HeroParameterStatusInfo* info, int param_2, nuint param_3);
 
     [Function([FunctionAttribute.Register.r8, FunctionAttribute.Register.r15], FunctionAttribute.Register.rax, true)]
     private delegate float GetCircleSizeDelegate(int stat, int level);
@@ -261,9 +274,9 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     public override void ConfigurationUpdated(Config configuration)
     {
         // Clear last points so strings will be recreated
-        if(_configuration.DisplayType != configuration.DisplayType || _configuration.DisplayExtra != configuration.DisplayExtra)
+        if (_configuration.DisplayType != configuration.DisplayType || _configuration.DisplayExtra != configuration.DisplayExtra)
         {
-            for(int i = 0; i < _resetStr.Length; i++)
+            for (int i = 0; i < _resetStr.Length; i++)
                 _resetStr[i] = true;
         }
 
