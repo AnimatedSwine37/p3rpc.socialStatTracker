@@ -162,7 +162,7 @@ param (
     $UseScriptDirectory=$True,
 
     ## => User Config <= ## 
-    $ProjectPath = "p3rpc.socialStatTracker.csproj",
+    $ProjectPath = "p3rpc.socialStatTracker/p3rpc.socialStatTracker.csproj",
     $PackageName = "p3rpc.socialStatTracker",
     $PublishOutputDir = "Publish/ToUpload",
 
