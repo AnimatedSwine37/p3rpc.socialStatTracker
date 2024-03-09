@@ -19,6 +19,10 @@ public class Config : Configurable<Config>
     [DefaultValue(false)]
     public bool DebugEnabled { get; set; } = false;
 
+    [DisplayName("Angle")]
+    [DefaultValue(1)]
+    public float Angle { get; set; } = 1;
+
     [DisplayName("X")]
     [DefaultValue(100)]
     public float X { get; set; } = 100;
@@ -26,6 +30,10 @@ public class Config : Configurable<Config>
     [DisplayName("Y")]
     [DefaultValue(100)]
     public float Y { get; set; } = 100;
+
+    [DisplayName("Z")]
+    [DefaultValue(100)]
+    public float Z { get; set; } = 100;
 
     public enum PointDisplayType
     {

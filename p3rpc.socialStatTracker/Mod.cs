@@ -7,7 +7,6 @@ using Reloaded.Hooks.Definitions.X64;
 using Reloaded.Mod.Interfaces;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using UE4SSDotNetFramework.Framework;
 using static p3rpc.socialStatTracker.Native.UI;
 using static p3rpc.socialStatTracker.Native.UnrealString;
 using static p3rpc.socialStatTracker.Native.xrd777;
@@ -55,6 +54,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     private float* _circleSizes;
     private IAsmHook _circleSizeHook;
     private IReverseWrapper<GetCircleSizeDelegate> _getCircleSizeReverseWrapper;
+    private GetHeroParameterHandleDelegate _getHeroParameterHandle;
 
     public Mod(ModContext context)
     {
@@ -72,6 +72,13 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         SigScan("40 55 53 41 55 41 57 48 8D AC 24 ?? ?? ?? ?? 48 81 EC 88 03 00 00", "HeroParamStatusDraw", address =>
         {
             _paramDrawHook = _hooks.CreateHook<ParameterStatusDrawLevelNameDelegate>(ParamStatusDraw, address).Activate();
+        });
+
+        SigScan("E8 ?? ?? ?? ?? 48 89 45 ?? 4C 8B E8 48 85 C0 0F 84 ?? ?? ?? ?? 8B 40 ??", "GetHeroParameterHandlePtr", address =>
+        {
+            var funcAddress = GetGlobalAddress(address + 1);
+            LogDebug($"Found GetHeroParameterHandle at 0x{funcAddress:X}");
+            _getHeroParameterHandle = _hooks.CreateWrapper<GetHeroParameterHandleDelegate>((long)funcAddress, out _);
         });
 
         SigScan("48 8D 05 ?? ?? ?? ?? F3 44 0F 10 44 ?? ??", "CircleSize", address =>
@@ -112,18 +119,14 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     {
         _paramDrawHook.OriginalFunction(info, param_2, param_3);
 
-        var heroParamRef = ObjectReference.FindFirstOf("HeroParameterHandle");
-        if (heroParamRef is null)
-            return;
-
-        var heroParam = new HeroParameterHandle(heroParamRef.Pointer);
+        var heroParam = _getHeroParameterHandle();
 
         if (_requiredPoints == null)
             SetupRequiredPoints(heroParam);
 
         for (int i = 0; i < 3; i++)
         {
-            if (!TryGetPointsStr(i, heroParam.Instance.points[i].points, out var pointsStr))
+            if (!TryGetPointsStr(i, heroParam->points[i].points, out var pointsStr))
                 continue;
 
             // Calculate the alpha value the same way the game normally does
@@ -163,13 +166,13 @@ public unsafe class Mod : ModBase // <= Do not Remove.
 
     private int[][]? _requiredPoints;
 
-    private unsafe void SetupRequiredPoints(HeroParameterHandle heroParam)
+    private unsafe void SetupRequiredPoints(UHeroParameterHandle* heroParam)
     {
         _requiredPoints = new int[3][];
         for (int i = 0; i < 3; i++)
         {
             _requiredPoints[i] = new int[6];
-            var requiredArr = heroParam.Instance.pDataAsset->Tables.Values[i].Points;
+            var requiredArr = heroParam->pDataAsset->Tables.Values[i].Points;
             int last = 0;
             for (int level = 0; level < 6; level++)
             {
@@ -248,6 +251,8 @@ public unsafe class Mod : ModBase // <= Do not Remove.
 
     [Function([FunctionAttribute.Register.r8, FunctionAttribute.Register.r15], FunctionAttribute.Register.rax, true)]
     private delegate float GetCircleSizeDelegate(int stat, int level);
+
+    private delegate UHeroParameterHandle* GetHeroParameterHandleDelegate();
 
     // I know the names of these are awful...
     [StructLayout(LayoutKind.Explicit)]
