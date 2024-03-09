@@ -9,6 +9,11 @@ public class Config : Configurable<Config>
     [DefaultValue(PointDisplayType.Exact)]
     public PointDisplayType DisplayType { get; set; } = PointDisplayType.Exact;
 
+    [DisplayName("Dynamic Circle Size")]
+    [Description("If enabled, the size of the social stat circles will increase as you gain points.")]
+    [DefaultValue(true)]
+    public bool ExpandCircles { get; set; } = true;
+
     [DisplayName("Display Extra Points")]
     [Description("If enabled, when you are at max level any extra points you have will be displayed.\nThis is not effected by Point Display Type")]
     [DefaultValue(true)]

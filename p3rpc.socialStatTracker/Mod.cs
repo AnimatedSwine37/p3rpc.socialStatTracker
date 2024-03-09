@@ -104,7 +104,8 @@ public unsafe class Mod : ModBase // <= Do not Remove.
         if (level == 6) return _circleSizes[5];
 
         var points = _lastPoints[stat];
-        if (points == -1) return _circleSizes[level - 1]; // In case last points isn't set up yet for some reason
+        if (points == -1 || !_configuration.ExpandCircles) 
+            return _circleSizes[level - 1]; // In case last points isn't set up yet for some reason
 
         var required = _requiredPoints![stat][level];
         var lastRequired = _requiredPoints[stat][level - 1];
