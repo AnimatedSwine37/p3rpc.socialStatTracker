@@ -122,7 +122,7 @@ jobs:
           ${{ env.PUBLISH_NUGET_PATH }}/*
         
     - name: Upload Changelog Artifact
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v4
       with:
         # Artifact name
         name: Changelog
