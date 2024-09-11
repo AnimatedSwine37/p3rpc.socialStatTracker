@@ -3,6 +3,7 @@ using Reloaded.Mod.Interfaces;
 using System.Diagnostics;
 using System.Text;
 using p3rpc.socialStatTracker.Configuration;
+using System.Drawing;
 
 namespace p3rpc.socialStatTracker;
 internal class Utils
@@ -113,4 +114,64 @@ internal class Utils
     {
         return (nuint)((*(int*)ptrAddress) + ptrAddress + 4);
     }
+
+    public class MultiSignature
+    {
+        public readonly object __sigLock;
+        public int registeredSignatures { get; set; }
+        public nuint? returnedAddress { get; set; }
+        public MultiSignature(string[] patterns, string name, Func<int, nuint> transformCb, Action<long> hookerCb)
+        {
+            __sigLock = new object();
+            returnedAddress = null;
+
+            registeredSignatures = patterns.Length;
+            foreach (var pattern in patterns)
+            {
+                _startupScanner.AddMainModuleScan(pattern, result =>
+                {
+                    lock (__sigLock)
+                    {
+                        registeredSignatures--;
+                    }
+                    if (!result.Found)
+                    {
+                        if (returnedAddress != null)
+                        {
+                            LogDebug($"Location {name} was already found in a candidate pattern");
+                        }
+                        else if (registeredSignatures == 0)
+                        {
+                            LogError($"Couldn't find location for {name}, stuff will break :(");
+                        }
+                        else
+                        {
+                            LogDebug($"Couldn't find location for {name} using pattern {pattern}, trying with another pattern...");
+                        }
+                        return;
+                    }
+                    var callHookCb = false;
+                    lock (__sigLock)
+                    {
+                        if (returnedAddress == null)
+                        {
+                            returnedAddress = transformCb(result.Offset);
+                            callHookCb = true;
+                        }
+                    }
+                    if (callHookCb)
+                    {
+                        Log($"Found {name} at 0x{returnedAddress:X}");
+                        hookerCb((long)returnedAddress);
+                    }
+                    else
+                    {
+                        LogDebug($"Location {name} was already found in a candidate pattern");
+                        return;
+                    }
+                });
+            }
+        }
+
+    }    
 }
