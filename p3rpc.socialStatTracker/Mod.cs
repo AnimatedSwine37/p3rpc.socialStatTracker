@@ -55,6 +55,7 @@ public unsafe class Mod : ModBase // <= Do not Remove.
     private IAsmHook _circleSizeHook;
     private IReverseWrapper<GetCircleSizeDelegate> _getCircleSizeReverseWrapper;
     private GetHeroParameterHandleDelegate _getHeroParameterHandle;
+    private MultiSignature _heroParamStatusDrawMS;
 
     public Mod(ModContext context)
     {
@@ -68,12 +69,15 @@ public unsafe class Mod : ModBase // <= Do not Remove.
 
         Utils.Initialise(_logger, _configuration, _modLoader);
         UI.Initialise(_hooks);
-
-        SigScan("40 55 53 41 55 41 57 48 8D AC 24 ?? ?? ?? ?? 48 81 EC 88 03 00 00", "HeroParamStatusDraw", address =>
-        {
-            _paramDrawHook = _hooks.CreateHook<ParameterStatusDrawLevelNameDelegate>(ParamStatusDraw, address).Activate();
-        });
-
+        _heroParamStatusDrawMS = new MultiSignature(
+            [
+                "40 55 53 41 55 41 57 48 8D AC 24 ?? ?? ?? ?? 48 81 EC 88 03 00 00",
+                "40 55 57 48 81 EC D8 00 00 00 48 8B 05 ?? ?? ?? ??"
+            ],
+            "HeroParamStatusDraw",
+            addr => (nuint)(addr + Utils.BaseAddress),
+            address => _paramDrawHook = _hooks.CreateHook<ParameterStatusDrawLevelNameDelegate>(ParamStatusDraw, address).Activate()
+            );
         SigScan("E8 ?? ?? ?? ?? 48 89 45 ?? 4C 8B E8 48 85 C0 0F 84 ?? ?? ?? ?? 8B 40 ??", "GetHeroParameterHandlePtr", address =>
         {
             var funcAddress = GetGlobalAddress(address + 1);
